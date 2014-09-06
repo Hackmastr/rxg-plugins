@@ -3,6 +3,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <rxgstore>
+#include <cstrike>
 
 #pragma semicolon 1
 
@@ -25,6 +26,7 @@ public Plugin:myinfo = {
 //-------------------------------------------------------------------------------------------------
 #define ITEM_MAX 16
 
+#define RXG_CSGO_CLAN "#rxg"
 #define LOCK_DURATION_EXPIRE 30.0
 
 new String:c_ip[32];
@@ -629,7 +631,7 @@ LogOutPlayer( client ) {
 	
 		decl String:query[1024];
 		FormatEx( query, sizeof query, 
-			"UPDATE user SET server=null WHERE user_id=%d",account );
+			"UPDATE user SET server='' WHERE user_id=%d",account );
 			
 		SQL_TQuery( g_db, IgnoredSQLResult, query );
 	}
@@ -1014,10 +1016,11 @@ public ShowStorePage( client, id, token ) {
 	
 	decl String:url[1024];
 	FormatEx( url, sizeof url,
-		"http://store.reflex-gamers.com/quickauth%s.php?id=%d&token=%d",
-		GAME == GAME_CSGO ? "_csgo" : "",
+		//"http://store.reflex-gamers.com/quickauth%s.php?id=%d&token=%d",
+		"http://rxgstore2.dev/quickauth?id=%d&token=%d&server=%s",
 		id,
-		token );
+		token,
+		GAME == GAME_CSGO ? "csgo" : "tf2" );
 	
 	if( GAME == GAME_CSGO ) {
 		ShowMOTDPanel(client, "RXG Store", url, MOTDPANEL_TYPE_URL);
@@ -1037,6 +1040,7 @@ public OnQuickAuthSave( Handle:owner, Handle:hndl, const String:error[], any:dat
 	SQL_TQuery( g_db, OnQuickAuthFetch, "SELECT LAST_INSERT_ID()", data );
 	
 	if( !hndl ) {
+		CloseHandle(data);
 		LogError( "SQL error saving QuickAuth token ::: %s", error );
 		DB_Fault();
 		return;
@@ -1092,11 +1096,17 @@ public ConVar_QueryClient( QueryCookie:cookie, client, ConVarQueryResult:result,
 
 	new token = GetRandomInt( 10000, 100000 );
 	
+	decl String:clan_tag[32];
+	CS_GetClientClanTag( client, clan_tag, sizeof clan_tag );
+	new bool:is_member = StrEqual( clan_tag, RXG_CSGO_CLAN );
+	
 	decl String:query[1024];
 	FormatEx( query, sizeof query, 
-		"INSERT INTO quick_auth (user_id, token) VALUES (%d, %d)",
+		"INSERT INTO quick_auth (user_id, token, server, is_member) VALUES (%d, %d, '%s', %d)",
 		GetSteamAccountID(client),
-		token );
+		token,
+		c_ip,
+		is_member );
 	
 	new Handle:pack = CreateDataPack();
 	WritePackCell( pack, GetClientUserId(client) );
