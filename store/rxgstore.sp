@@ -678,6 +678,8 @@ LogOutPlayer( client ) {
 	
 		decl String:query[1024];
 		FormatEx( query, sizeof query, 
+			"UPDATE USER SET INGAME=0 WHERE ACCOUNT=%d",account );
+			"UPDATE user SET server='' WHERE user_id=%d",account );
 			"UPDATE sourcebans_store.user SET server='' WHERE user_id=%d",account );
 			
 		DBRELAY_TQuery( IgnoredSQLResult, query );
@@ -1111,7 +1113,6 @@ public ConVar_QueryClient( QueryCookie:cookie, client, ConVarQueryResult:result,
 	WritePackCell( pack, GetClientUserId(client) );
 	WritePackCell( pack, token );
 	
-	SQL_TQuery( g_db, OnQuickAuthSave, query, pack );
 	if( g_db_connected ) {
 		SQL_TQuery( g_db, OnQuickAuthSave, query, pack );
 	} else {
